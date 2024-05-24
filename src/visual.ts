@@ -29,49 +29,122 @@ import powerbi from "powerbi-visuals-api";
 import { FormattingSettingsService } from "powerbi-visuals-utils-formattingmodel";
 import "./../style/visual.less";
 
+import * as d3 from "d3";
+import IVisual = powerbi.extensibility.visual.IVisual;
 import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
 import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
-import IVisual = powerbi.extensibility.visual.IVisual;
+import DataView = powerbi.DataView;
 
 import { VisualFormattingSettingsModel } from "./settings";
 
+interface DataPoint {
+    date: Date;
+    value: number;
+    category: string;
+}
+
+interface VisualData {
+    dataPoints: DataPoint[];
+    categories: string[];
+}
+
 export class Visual implements IVisual {
-    private target: HTMLElement;
-    private updateCount: number;
-    private textNode: Text;
-    private formattingSettings: VisualFormattingSettingsModel;
-    private formattingSettingsService: FormattingSettingsService;
+    private svg: d3.Selection<SVGElement, unknown, HTMLElement, any>;
+    private margin = { top: 20, right: 20, bottom: 30, left: 50 };
+    private width: number;
+    private height: number;
 
     constructor(options: VisualConstructorOptions) {
-        console.log('Visual constructor', options);
-        this.formattingSettingsService = new FormattingSettingsService();
-        this.target = options.element;
-        this.updateCount = 0;
-        if (document) {
-            const new_p: HTMLElement = document.createElement("p");
-            new_p.appendChild(document.createTextNode("Update count:"));
-            const new_em: HTMLElement = document.createElement("em");
-            this.textNode = document.createTextNode(this.updateCount.toString());
-            new_em.appendChild(this.textNode);
-            new_p.appendChild(new_em);
-            this.target.appendChild(new_p);
-        }
+        this.svg = d3.select(options.element)
+            .append('svg')
+            .classed('line-chart', true);
+        
+        this.svg.attr('width', this.width + this.margin.left + this.margin.right)
+            .attr('height', this.height + this.margin.top + this.margin.bottom);
+
+        this.svg.append('g')
+            .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
     }
 
     public update(options: VisualUpdateOptions) {
-        this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(VisualFormattingSettingsModel, options.dataViews[0]);
+        this.width = options.viewport.width - this.margin.left - this.margin.right;
+        this.height = options.viewport.height - this.margin.top - this.margin.bottom;
 
-        console.log('Visual update', options);
-        if (this.textNode) {
-            this.textNode.textContent = (this.updateCount++).toString();
-        }
+        const dataView: DataView = options.dataViews[0];
+        const visualData = this.getVisualData(dataView);
+
+        this.drawChart(visualData);
     }
 
-    /**
-     * Returns properties pane formatting model content hierarchies, properties and latest formatting values, Then populate properties pane.
-     * This method is called once every time we open properties pane or when the user edit any format property. 
-     */
-    public getFormattingModel(): powerbi.visuals.FormattingModel {
-        return this.formattingSettingsService.buildFormattingModel(this.formattingSettings);
+    private getVisualData(dataView: DataView): VisualData {
+        const category = dataView.categorical.categories[0];
+        const valueColumns = dataView.categorical.values;
+
+        const dataPoints: DataPoint[] = [];
+        const categories = new Set<string>();
+
+        category.values.forEach((categoryValue, index) => {
+            valueColumns.forEach((valueColumn) => {
+                const date = new Date(categoryValue.toString());
+                const value = valueColumn.values[index] as number;
+                const categoryName = valueColumn.source.groupName.toString();
+
+                // Ensure valid date and value
+                if (!isNaN(date.getTime()) && value !== null && value !== undefined && !isNaN(value)) {
+                    dataPoints.push({
+                        date: date,
+                        value: value,
+                        category: categoryName
+                    });
+                    categories.add(categoryName);
+                }
+            });
+        });
+
+        return {
+            dataPoints,
+            categories: Array.from(categories)
+        };
+    }
+
+    private drawChart(data: VisualData) {
+        const xScale = d3.scaleTime()
+            .domain(d3.extent(data.dataPoints, d => d.date) as [Date, Date])
+            .range([0, this.width]);
+
+        const yScale = d3.scaleLinear()
+            .domain([0, d3.max(data.dataPoints, d => d.value) as number])
+            .nice()
+            .range([this.height, 0]);
+
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
+            .domain(data.categories);
+
+        const line = d3.line<DataPoint>()
+            .x(d => xScale(d.date))
+            .y(d => yScale(d.value));
+
+        const svg = this.svg.select<SVGGElement>('g');
+        svg.selectAll('*').remove();
+
+        svg.append('g')
+            .attr('class', 'x axis')
+            .attr('transform', `translate(0,${this.height})`)
+            .call(d3.axisBottom(xScale));
+
+        svg.append('g')
+            .attr('class', 'y axis')
+            .call(d3.axisLeft(yScale));
+
+        const series = d3.group(data.dataPoints, d => d.category);
+
+        series.forEach((dataPoints, category) => {
+            svg.append('path')
+                .datum(dataPoints)
+                .attr('fill', 'none')
+                .attr('stroke', colorScale(category) as string)
+                .attr('stroke-width', 1.5)
+                .attr('d', line);
+        });
     }
 }

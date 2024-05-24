@@ -49,6 +49,8 @@ df = pd.DataFrame({
     'Legend': legends
 })
 
-import ace_tools as tools; tools.display_dataframe_to_user(name="Generated Series Data", dataframe=df)
+# import ace_tools as tools; tools.display_dataframe_to_user(name="Generated Series Data", dataframe=df)
 
-df.head()
+# df.head()
+
+df.to_csv("data.csv", sep=";")
