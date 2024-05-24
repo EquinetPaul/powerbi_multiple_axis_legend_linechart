@@ -53,13 +53,15 @@
         }
     ],
     "objects": {
-        "general": {
-            "displayName": "General",
+        "colorSelector": {
+            "displayName": "Data Colors",
             "properties": {
-                "formatString": {
+                "fill": {
                     "type": {
-                        "formatting": {
-                            "formatString": true
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
                         }
                     }
                 }

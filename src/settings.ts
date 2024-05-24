@@ -26,58 +26,51 @@
 
 "use strict";
 
+import powerbiVisualsApi from "powerbi-visuals-api";
 import { formattingSettings } from "powerbi-visuals-utils-formattingmodel";
+import ISelectionId = powerbiVisualsApi.visuals.ISelectionId;
 
-import FormattingSettingsCard = formattingSettings.SimpleCard;
-import FormattingSettingsSlice = formattingSettings.Slice;
-import FormattingSettingsModel = formattingSettings.Model;
+import Card = formattingSettings.SimpleCard;
+import Model = formattingSettings.Model;
+import Slice = formattingSettings.Slice;
+import ColorPicker = formattingSettings.ColorPicker;
 
-/**
- * Data Point Formatting Card
- */
-class DataPointCardSettings extends FormattingSettingsCard {
-    defaultColor = new formattingSettings.ColorPicker({
-        name: "defaultColor",
-        displayName: "Default color",
-        value: { value: "" }
-    });
+interface LineChartDataPoint {
+    value: number;
+    category: string;
+    color: string;
+    selectionId: ISelectionId;
+}
 
-    showAllDataPoints = new formattingSettings.ToggleSwitch({
-        name: "showAllDataPoints",
-        displayName: "Show all",
-        value: true
-    });
-
-    fill = new formattingSettings.ColorPicker({
-        name: "fill",
-        displayName: "Fill",
-        value: { value: "" }
-    });
-
-    fillRule = new formattingSettings.ColorPicker({
-        name: "fillRule",
-        displayName: "Color saturation",
-        value: { value: "" }
-    });
-
-    fontSize = new formattingSettings.NumUpDown({
-        name: "fontSize",
-        displayName: "Text Size",
-        value: 12
-    });
-
-    name: string = "dataPoint";
-    displayName: string = "Data colors";
-    slices: Array<FormattingSettingsSlice> = [this.defaultColor, this.showAllDataPoints, this.fill, this.fillRule, this.fontSize];
+class ColorSelectorCardSettings extends Card {
+    name: string = "colorSelector";
+    displayName: string = "Data Colors";
+    slices: Slice[] = [];
 }
 
 /**
-* visual settings model class
-*
+* LineChart formatting settings model class
 */
-export class VisualFormattingSettingsModel extends FormattingSettingsModel {
-    // Create formatting settings model formatting cards
-    dataPointCard = new DataPointCardSettings();
+export class LineChartSettingsModel extends Model {
+    colorSelector = new ColorSelectorCardSettings();
 
-    cards = [this.dataPointCard];
+    cards: Card[] = [this.colorSelector];
+
+    /**
+     * populate colorSelector object categories formatting properties
+     * @param dataPoints 
+     */
+    populateColorSelector(dataPoints: LineChartDataPoint[]) {
+        const slices: Slice[] = this.colorSelector.slices;
+        if (dataPoints) {
+            dataPoints.forEach(dataPoint => {
+                slices.push(new ColorPicker({
+                    name: "fill",
+                    displayName: dataPoint.category,
+                    value: { value: dataPoint.color },
+                    selector: dataPoint.selectionId.getSelector(),
+                }));
+            });
+        }
+    }
 }
