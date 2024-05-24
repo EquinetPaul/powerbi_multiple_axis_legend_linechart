@@ -217,7 +217,7 @@ export class Visual implements IVisual {
                 .attr('transform', `translate(${this.width + axisOffset}, 0)`)
                 .call(d3.axisRight(yScale).tickSize(5).ticks(5))
                 .append('text')
-                .attr('fill', colorScale(category) as string)
+                .attr('fill', colorPalette.getColor(category).value as string)
                 .attr('text-anchor', 'start')
                 .attr('x', 10)
                 .attr('y', -10)
