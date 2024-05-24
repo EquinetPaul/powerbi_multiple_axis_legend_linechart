@@ -46,11 +46,12 @@ interface DataPoint {
 interface VisualData {
     dataPoints: DataPoint[];
     categories: string[];
+    yScales: { [key: string]: d3.ScaleLinear<number, number> };
 }
 
 export class Visual implements IVisual {
     private svg: d3.Selection<SVGElement, unknown, HTMLElement, any>;
-    private margin = { top: 20, right: 20, bottom: 30, left: 50 };
+    private margin = { top: 20, right: 0, bottom: 30, left: 50 };
     private width: number;
     private height: number;
 
@@ -58,7 +59,7 @@ export class Visual implements IVisual {
         this.svg = d3.select(options.element)
             .append('svg')
             .classed('line-chart', true);
-        
+
         this.svg.attr('width', this.width + this.margin.left + this.margin.right)
             .attr('height', this.height + this.margin.top + this.margin.bottom);
 
@@ -66,7 +67,10 @@ export class Visual implements IVisual {
             .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
     }
 
-    public update(options: VisualUpdateOptions) {
+    public update(options: VisualUpdateOptions) {   
+        // Set the right margin to manage the number of categories (legend)   
+        this.margin.right = 40 * options.dataViews[0].categorical.values.length
+        
         this.width = options.viewport.width - this.margin.left - this.margin.right;
         this.height = options.viewport.height - this.margin.top - this.margin.bottom;
 
@@ -82,6 +86,7 @@ export class Visual implements IVisual {
 
         const dataPoints: DataPoint[] = [];
         const categories = new Set<string>();
+        const yScales: { [key: string]: d3.ScaleLinear<number, number> } = {};
 
         category.values.forEach((categoryValue, index) => {
             valueColumns.forEach((valueColumn) => {
@@ -89,7 +94,6 @@ export class Visual implements IVisual {
                 const value = valueColumn.values[index] as number;
                 const categoryName = valueColumn.source.groupName.toString();
 
-                // Ensure valid date and value
                 if (!isNaN(date.getTime()) && value !== null && value !== undefined && !isNaN(value)) {
                     dataPoints.push({
                         date: date,
@@ -101,28 +105,37 @@ export class Visual implements IVisual {
             });
         });
 
+        // Create yScales for each category
+        categories.forEach(category => {
+            const categoryDataPoints = dataPoints.filter(d => d.category === category);
+            const yMax = d3.max(categoryDataPoints, d => d.value) as number;
+            yScales[category] = d3.scaleLinear()
+                .domain([0, yMax])
+                .range([this.height, 0]);
+        });
+
         return {
             dataPoints,
-            categories: Array.from(categories)
+            categories: Array.from(categories),
+            yScales
         };
     }
 
     private drawChart(data: VisualData) {
+
         const xScale = d3.scaleTime()
             .domain(d3.extent(data.dataPoints, d => d.date) as [Date, Date])
             .range([0, this.width]);
-
-        const yScale = d3.scaleLinear()
-            .domain([0, d3.max(data.dataPoints, d => d.value) as number])
-            .nice()
-            .range([this.height, 0]);
 
         const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
             .domain(data.categories);
 
         const line = d3.line<DataPoint>()
             .x(d => xScale(d.date))
-            .y(d => yScale(d.value));
+            .y(d => {
+                const yScale = data.yScales[d.category];
+                return yScale(d.value);
+            });
 
         const svg = this.svg.select<SVGGElement>('g');
         svg.selectAll('*').remove();
@@ -132,19 +145,33 @@ export class Visual implements IVisual {
             .attr('transform', `translate(0,${this.height})`)
             .call(d3.axisBottom(xScale));
 
-        svg.append('g')
-            .attr('class', 'y axis')
-            .call(d3.axisLeft(yScale));
-
         const series = d3.group(data.dataPoints, d => d.category);
 
+        let axisOffset = 0;
+        const axisSpacing = 40;
+
         series.forEach((dataPoints, category) => {
+            const yScale = data.yScales[category];
+
             svg.append('path')
                 .datum(dataPoints)
                 .attr('fill', 'none')
                 .attr('stroke', colorScale(category) as string)
                 .attr('stroke-width', 1.5)
                 .attr('d', line);
+
+            svg.append('g')
+                .attr('class', 'y axis')
+                .attr('transform', `translate(${this.width + axisOffset}, 0)`)
+                .call(d3.axisRight(yScale).tickSize(5).ticks(5))
+                .append('text')
+                .attr('fill', colorScale(category) as string)
+                .attr('text-anchor', 'start')
+                .attr('x', 10)
+                .attr('y', -10)
+                .text(category);
+
+            axisOffset += axisSpacing;
         });
     }
 }
