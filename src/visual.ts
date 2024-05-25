@@ -36,37 +36,39 @@ import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import DataView = powerbi.DataView;
 import ISandboxExtendedColorPalette = powerbi.extensibility.ISandboxExtendedColorPalette;
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
-import DataViewCategoryColumn = powerbi.DataViewCategoryColumn;
-import Fill = powerbi.Fill;
-import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
-import { dataViewObjects } from "powerbi-visuals-utils-dataviewutils";
 import { createTooltipServiceWrapper, ITooltipServiceWrapper } from "powerbi-visuals-utils-tooltiputils";
 import { VisualFormattingSettingsModel } from "./settings";
 
-
+// Represents an individual data point in the chart
 interface DataPoint {
-    date: Date;
-    value: number;
-    category: string;
-    color: string;
+    date: Date;       // Date of the data point
+    value: number;    // Numeric value of the data point
+    category: string; // Category of the data point
+    color: string;    // Color associated with the category
 }
 
+// Represents the visual data for the chart
 interface VisualData {
-    dataPoints: DataPoint[];
-    categories: string[];
-    yScales: { [key: string]: d3.ScaleLinear<number, number> };
+    dataPoints: DataPoint[];                           // Array of data points
+    categories: string[];                              // List of unique categories
+    yScales: { [key: string]: d3.ScaleLinear<number, number> }; // Y-axis scales for each category
 }
+
 
 export class Visual implements IVisual {
+    // Variables for SVG elements, dimensions, and settings
     private svg: d3.Selection<SVGElement, unknown, HTMLElement, any>;
     private margin = { top: 20, right: 0, bottom: 30, left: 50 };
     private width: number;
     private height: number;
+
+    // Variables for visual management and formatting management 
     private host: IVisualHost;
     private tooltipServiceWrapper: ITooltipServiceWrapper;
     private formattingSettings: VisualFormattingSettingsModel;
     private formattingSettingsService: FormattingSettingsService;
 
+    // Constructor initializes the visual, sets up the SVG container, and applies initial settings
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
         this.formattingSettingsService = new FormattingSettingsService();
@@ -86,35 +88,38 @@ export class Visual implements IVisual {
         // Get formating settings
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(VisualFormattingSettingsModel, options.dataViews[0]);
 
-        // Set the right margin to manage the number of categories (legend)   
+        // Adjust the right margin based on the number of categories  
         this.margin.right = 40 * options.dataViews[0].categorical.values.length
 
+        // Calculate width and height based on viewport and margins
         this.width = options.viewport.width - this.margin.left - this.margin.right;
         this.height = options.viewport.height - this.margin.top - this.margin.bottom;
 
-
+        // Extract and process data from the DataView
         const dataView: DataView = options.dataViews[0];
         const visualData = this.getVisualData(dataView, this.host, this.formattingSettings);
 
+        // Draw the chart with the processed data and formatting settings
         this.drawChart(visualData, this.host, this.formattingSettings);
 
     }
 
     private getVisualData(dataView: DataView, host: IVisualHost, formattingSettings: VisualFormattingSettingsModel): VisualData {
+        // Get color palette from host
         const colorPalette: ISandboxExtendedColorPalette = host.colorPalette;
 
-
+        // Extract categories and value columns from dataView
         const category = dataView.categorical.categories[0];
         const valueColumns = dataView.categorical.values;
 
+        // Initialize arrays and sets for data points and categories
         const dataPoints: DataPoint[] = [];
         const categories = new Set<string>();
         const yScales: { [key: string]: d3.ScaleLinear<number, number> } = {};
 
-
-
+        // Iterate over each category value
         category.values.forEach((categoryValue, index) => {
-
+            // Iterate over each value column
             valueColumns.forEach((valueColumn) => {
                 const date = new Date(categoryValue.toString());
                 const value = valueColumn.values[index] as number;
@@ -122,7 +127,7 @@ export class Visual implements IVisual {
 
                 const color: string = colorPalette.getColor(categoryName).value
 
-
+                // Check for valid date and value, then add to data points and categories
                 if (!isNaN(date.getTime()) && value !== null && value !== undefined && !isNaN(value)) {
                     dataPoints.push({
                         date: date,
@@ -135,7 +140,7 @@ export class Visual implements IVisual {
             });
         });
 
-        // Create yScales for each category
+        // Create yScales for each category based on auto-scaling settings
         const yMinUserField = formattingSettings.generalSettings.minRangeY.value
         const yMaxUserField = formattingSettings.generalSettings.maxRangeY.value
         if (formattingSettings.generalSettings.autoScaleY.value) {
@@ -154,6 +159,7 @@ export class Visual implements IVisual {
                 .range([this.height, 0]);
         });
 
+        // Return processed visual data
         return {
             dataPoints,
             categories: Array.from(categories),
@@ -162,15 +168,16 @@ export class Visual implements IVisual {
     }
 
     private drawChart(data: VisualData, host: IVisualHost, formattingSettings: VisualFormattingSettingsModel) {
+        // Get color palette from host
         const colorPalette: ISandboxExtendedColorPalette = host.colorPalette;
 
+        // Create xScale for time-based data
+        // TODO: Manage different type of data (not just time-based)
         const xScale = d3.scaleTime()
             .domain(d3.extent(data.dataPoints, d => d.date) as [Date, Date])
             .range([0, this.width]);
 
-        const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
-            .domain(data.categories);
-
+        // Define the line generator function
         const line = d3.line<DataPoint>()
             .x(d => xScale(d.date))
             .y(d => {
@@ -178,16 +185,20 @@ export class Visual implements IVisual {
                 return yScale(d.value);
             });
 
+        // Clear previous chart elements
         const svg = this.svg.select<SVGGElement>('g');
         svg.selectAll('*').remove();
 
+        // Append x-axis
         svg.append('g')
             .attr('class', 'x axis')
             .attr('transform', `translate(0,${this.height})`)
             .call(d3.axisBottom(xScale));
 
+        // Group data points by category
         const series = d3.group(data.dataPoints, d => d.category);
 
+        // Define spacings for Y axis
         let axisOffset = 0;
         const axisSpacing = 40;
 
@@ -250,7 +261,7 @@ export class Visual implements IVisual {
                     highlightCategory(category);
                 });
 
-            // Draw the axis
+            // Draw the y-axis
             svg.append('g')
                 .attr('class', 'y axis')
                 .attr('transform', `translate(${this.width + axisOffset}, 0)`)
@@ -304,7 +315,6 @@ export class Visual implements IVisual {
 
         // Overlay to capture mouse movements
         let tooltipTimeout;
-        // Overlay to capture mouse movements
         const overlay = svg.append('rect')
             .attr('class', 'overlay')
             .attr('width', this.width)
@@ -363,7 +373,7 @@ export class Visual implements IVisual {
 
         // Function to get the closest data points
         function getClosestDataPoints(mouseX) {
-            const bisectDate = d3.bisector((d: DataPoint) => d.date.getTime()).left;
+            // const bisectDate = d3.bisector((d: DataPoint) => d.date.getTime()).left;
             const x0 = xScale.invert(mouseX).getTime();
             let closestPoints = [];
             let minDiff = Infinity;
