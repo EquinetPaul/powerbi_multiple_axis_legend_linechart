@@ -44,6 +44,8 @@ pbiviz start
 
 ### Key Functions
 
+#### visual.ts
+
 - `update(options: VisualUpdateOptions)`: Updates the visual with new data and settings.
 - `getVisualData(dataView: DataView, host: IVisualHost, formattingSettings: VisualFormattingSettingsModel): VisualData`: Processes the data from Power BI and prepares it for visualization.
 - `drawChart(data: VisualData, host: IVisualHost, formattingSettings: VisualFormattingSettingsModel)`: Draws the line chart, including axes, lines, points, and tooltips.
