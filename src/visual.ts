@@ -262,9 +262,9 @@ export class Visual implements IVisual {
                 .append('text')
                 .attr('fill', colorPalette.getColor(category).value as string)
                 .attr('text-anchor', 'start')
-                .attr('x', 10)
+                .attr('x', 0)
                 .attr('y', -10)
-                .text(category);
+                .text(category.length > 6 ? category.substring(0, 4) + '..' : category);
 
             axisOffset += axisSpacing;
         });
@@ -304,60 +304,61 @@ export class Visual implements IVisual {
 
         // Overlay to capture mouse movements
         let tooltipTimeout;
-// Overlay to capture mouse movements
-const overlay = svg.append('rect')
-    .attr('class', 'overlay')
-    .attr('width', this.width)
-    .attr('height', this.height)
-    .attr('fill', 'none')
-    .attr('pointer-events', 'all')
-    .on('mousemove', function (event) {
-        clearTimeout(tooltipTimeout); // Clear any existing timeout
+        // Overlay to capture mouse movements
+        const overlay = svg.append('rect')
+            .attr('class', 'overlay')
+            .attr('width', this.width)
+            .attr('height', this.height)
+            .attr('fill', 'none')
+            .attr('pointer-events', 'all')
+            .on('mousemove', function (event) {
+                clearTimeout(tooltipTimeout); // Clear any existing timeout
 
-        const [mouseX] = d3.pointer(event);
-        const closestDataPoints = getClosestDataPoints(mouseX);
-        if (closestDataPoints.length > 0) {
-            const date = closestDataPoints[0].date;
-            verticalLine
-                .attr('x1', xScale(date))
-                .attr('x2', xScale(date))
-                .attr('opacity', 1);
+                const [mouseX] = d3.pointer(event);
+                const closestDataPoints = getClosestDataPoints(mouseX);
+                if (closestDataPoints.length > 0) {
+                    const date = closestDataPoints[0].date;
+                    verticalLine
+                        .attr('x1', xScale(date))
+                        .attr('x2', xScale(date))
+                        .attr('opacity', 1);
 
-            // Update tooltip content
-            const tooltipContent = closestDataPoints.map(d =>
-                `<div style="display: flex; align-items: center;">
+                    // Update tooltip content
+                    const tooltipContent = closestDataPoints.map(d =>
+                        `<div style="display: flex; align-items: center;">
                     <svg width="10" height="10" style="margin-right: 5px;">
                         <circle cx="5" cy="5" r="5" fill="${colorPalette.getColor(d.category).value as string}" />
                     </svg>
                     ${d.category}: ${d.value}
                 </div>`
-            ).join("");
+                    ).join("");
 
-            tooltip.html(`<div><strong>${closestDataPoints[0].date.toDateString()}</strong></div>${tooltipContent}`);
+                    tooltip.html(`<div><strong>${closestDataPoints[0].date.toDateString()}</strong></div>${tooltipContent}`);
 
-            // Calculate tooltip position
-            const tooltipWidth = tooltip.node().getBoundingClientRect().width;
-            const windowWidth = window.innerWidth;
-            let tooltipX = event.pageX + 10;  // Default position to the right
-            if (tooltipX + tooltipWidth > windowWidth) {
-                tooltipX = event.pageX - tooltipWidth - 10;  // Position to the left if it exceeds window width
-            }
+                    // Calculate tooltip position
+                    const tooltipWidth = tooltip.node().getBoundingClientRect().width;
+                    const windowWidth = window.innerWidth;
+                    let tooltipX = event.pageX + 10;  // Default position to the right
+                    if (tooltipX + tooltipWidth > windowWidth) {
+                        tooltipX = event.pageX - tooltipWidth - 10;  // Position to the left if it exceeds window width
+                    }
 
-            tooltipTimeout = setTimeout(() => {
-                tooltip.style("left", `${tooltipX}px`)
-                    .style("top", `${event.pageY + 10}px`)
-                    .style("opacity", 1);
-            }, 500); // Delay of 0.5 seconds
-        } else {
-            verticalLine.attr('opacity', 0);
-            tooltip.style("opacity", 0);
-        }
-    })
-    .on('mouseout', function () {
-        clearTimeout(tooltipTimeout); // Clear the timeout if mouse leaves
-        verticalLine.attr('opacity', 0);
-        tooltip.style("opacity", 0);
-    });
+                    tooltipTimeout = setTimeout(() => {
+                        tooltip.style("left", `${tooltipX}px`)
+                            .style("top", `${event.pageY + 10}px`)
+                            .style("opacity", 1);
+                    }, 500); // Delay of 0.5 seconds
+                } else {
+                    verticalLine.attr('opacity', 0);
+                    tooltip.style("opacity", 0);
+                }
+            })
+            .on('mouseout', function () {
+                clearTimeout(tooltipTimeout); // Clear the timeout if mouse leaves
+                verticalLine.attr('opacity', 0);
+                tooltip.style("opacity", 0);
+                svg.selectAll('circle').classed('selected-point', false);
+            });
 
 
         // Function to get the closest data points
@@ -377,8 +378,6 @@ const overlay = svg.append('rect')
             });
 
             svg.selectAll('circle').classed('selected-point', false);
-
-            console.log(closestPoints)
 
             closestPoints.forEach(d => {
                 svg.selectAll(`.point-${d.category}`).filter(function (dp: DataPoint) { return dp.date.getTime() === d.date.getTime(); })
