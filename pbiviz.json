@@ -1,1 +1,26 @@
-{"visual":{"name":"multipleaxislegendlinechart","displayName":"multiple_axis_legend_linechart","guid":"multipleaxislegendlinechart0F2631B04077406D946EE242F7009C34","visualClassName":"Visual","version":"1.0.0.0","description":"","supportUrl":"","gitHubUrl":""},"apiVersion":"5.3.0","author":{"name":"","email":""},"assets":{"icon":"assets/icon.png"},"externalJS":null,"style":"style/visual.less","capabilities":"capabilities.json","dependencies":null,"stringResources":[],"version":"1.0.0.0"}
+{
+    "visual": {
+        "name": "multipleaxislegendlinechart",
+        "displayName": "Linechart Multiple Axis Scaled",
+        "guid": "multipleaxislegendlinechart0F2631B04077406D946EE242F7009C34",
+        "visualClassName": "Visual",
+        "version": "1.0.0.0",
+        "description": "Linechart Multiple Axis Scaled",
+        "supportUrl": "https://github.com/EquinetPaul/powerbi_multiple_axis_legend_linechart",
+        "gitHubUrl": "https://github.com/EquinetPaul/powerbi_multiple_axis_legend_linechart"
+    },
+    "apiVersion": "5.3.0",
+    "author": {
+        "name": "Paul Equinet",
+        "email": "paulequiney@gmail.com"
+    },
+    "assets": {
+        "icon": "assets/icon.png"
+    },
+    "externalJS": null,
+    "style": "style/visual.less",
+    "capabilities": "capabilities.json",
+    "dependencies": null,
+    "stringResources": [],
+    "version": "1.0.0.0"
+}
