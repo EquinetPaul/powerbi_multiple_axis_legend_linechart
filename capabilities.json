@@ -3,17 +3,17 @@
         {
             "name": "category",
             "kind": "Grouping",
-            "displayName": "Category"
+            "displayName": "X Axis"
         },
         {
             "name": "measure",
             "kind": "Measure",
-            "displayName": "Measure"
+            "displayName": "Y Axis"
         },
         {
             "name": "series",
             "kind": "Grouping",
-            "displayName": "Series"
+            "displayName": "Legend"
         }
     ],
     "dataViewMappings": [
@@ -53,16 +53,26 @@
         }
     ],
     "objects": {
-        "colorSelector": {
-            "displayName": "Data Colors",
+        "general": {
             "properties": {
-                "fill": {
+                "displayPoints": {
                     "type": {
-                        "fill": {
-                            "solid": {
-                                "color": true
-                            }
-                        }
+                        "bool": true
+                    }
+                },
+                "autoScaleY": {
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "minRangeY": {
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "maxRangeY": {
+                    "type": {
+                        "numeric": true
                     }
                 }
             }

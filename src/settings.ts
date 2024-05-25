@@ -26,51 +26,65 @@
 
 "use strict";
 
-import powerbiVisualsApi from "powerbi-visuals-api";
 import { formattingSettings } from "powerbi-visuals-utils-formattingmodel";
-import ISelectionId = powerbiVisualsApi.visuals.ISelectionId;
 
-import Card = formattingSettings.SimpleCard;
-import Model = formattingSettings.Model;
-import Slice = formattingSettings.Slice;
-import ColorPicker = formattingSettings.ColorPicker;
+import FormattingSettingsCard = formattingSettings.SimpleCard;
+import FormattingSettingsSlice = formattingSettings.Slice;
+import FormattingSettingsModel = formattingSettings.Model;
 
-interface LineChartDataPoint {
-    value: number;
-    category: string;
-    color: string;
-    selectionId: ISelectionId;
-}
+/**
+ * Data Point Formatting Card
+ */
+class GeneralSettings extends FormattingSettingsCard {
 
-class ColorSelectorCardSettings extends Card {
-    name: string = "colorSelector";
-    displayName: string = "Data Colors";
-    slices: Slice[] = [];
+    displayPoints = new formattingSettings.ToggleSwitch({
+        name: "displayPoints",
+        displayName: "Display Points",
+        value: false,
+    })
+
+    autoScaleY = new formattingSettings.ToggleSwitch({
+        name: "autoScaleY",
+        displayName: "Auto Scale Y",
+        value: true,
+    })
+
+    minRangeY = new formattingSettings.NumUpDown({
+        name: "minRangeY",
+        displayName: "Min Range Y",
+        value: -99999,
+        visible: false
+    });
+
+    maxRangeY = new formattingSettings.NumUpDown({
+        name: "maxRangeY",
+        displayName: "Max Range Y",
+        value: 99999,
+        visible: false
+    });
+
+    name: string = "general";
+    displayName: string = "General";
+    slices: Array<FormattingSettingsSlice> = [this.displayPoints, this.autoScaleY, this.minRangeY, this.maxRangeY];
 }
 
 /**
-* LineChart formatting settings model class
+* visual settings model class
+*
 */
-export class LineChartSettingsModel extends Model {
-    colorSelector = new ColorSelectorCardSettings();
+export class VisualFormattingSettingsModel extends FormattingSettingsModel {
+    // Create formatting settings model formatting cards
+    generalSettings = new GeneralSettings();
 
-    cards: Card[] = [this.colorSelector];
+    cards = [this.generalSettings];
 
-    /**
-     * populate colorSelector object categories formatting properties
-     * @param dataPoints 
-     */
-    populateColorSelector(dataPoints: LineChartDataPoint[]) {
-        const slices: Slice[] = this.colorSelector.slices;
-        if (dataPoints) {
-            dataPoints.forEach(dataPoint => {
-                slices.push(new ColorPicker({
-                    name: "fill",
-                    displayName: dataPoint.category,
-                    value: { value: dataPoint.color },
-                    selector: dataPoint.selectionId.getSelector(),
-                }));
-            });
-        }
+    public displayInputFieldsAxisY() {
+        this.generalSettings.minRangeY.visible = true
+        this.generalSettings.maxRangeY.visible = true
+    }
+
+    public hideInputFieldsAxisY() {
+        this.generalSettings.minRangeY.visible = false
+        this.generalSettings.maxRangeY.visible = false
     }
 }
