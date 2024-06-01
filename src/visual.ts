@@ -42,6 +42,7 @@ import DataViewValueColumns = powerbi.DataViewValueColumns;
 import DataViewValueColumnGroup = powerbi.DataViewValueColumnGroup;
 import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
 import ILocalizationManager = powerbi.extensibility.ILocalizationManager;
+import ISelectionManager = powerbi.extensibility.ISelectionManager;
 
 import { createTooltipServiceWrapper, ITooltipServiceWrapper } from "powerbi-visuals-utils-tooltiputils";
 import { ColorHelper } from "powerbi-visuals-utils-colorutils";
@@ -86,6 +87,7 @@ export class Visual implements IVisual {
 
     private colorPalette: IColorPalette;
     private localizationManager: ILocalizationManager;
+    private selectionManager: ISelectionManager;
 
     // Constructor initializes the visual, sets up the SVG container, and applies initial settings
     constructor(options: VisualConstructorOptions) {
@@ -94,6 +96,7 @@ export class Visual implements IVisual {
         this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
         this.localizationManager = this.host.createLocalizationManager();
         this.colorPalette = options.host.colorPalette;
+        this.selectionManager = this.host.createSelectionManager();
         this.svg = d3.select(options.element)
             .append('svg')
             .classed('line-chart', true);
@@ -147,6 +150,8 @@ export class Visual implements IVisual {
             const seriesSelectionId = this.host.createSelectionIdBuilder()
                 .withSeries(options.dataViews[0].categorical.values, ser)
                 .createSelectionId();
+
+            
 
 
             // get the color from series
@@ -260,7 +265,11 @@ export class Visual implements IVisual {
         svg.append('g')
             .attr('class', 'x axis')
             .attr('transform', `translate(0,${this.height})`)
-            .call(d3.axisBottom(xScale));
+            .call(
+                d3.axisBottom(xScale)
+                .ticks(Math.max(Math.floor(this.width / 100), 2))
+                // .tickFormat(d3.timeFormat("%Y-%m-%d");)
+            );
 
         // Group data points by category
         const series = d3.group(data.dataPoints, d => d.category);
@@ -268,8 +277,6 @@ export class Visual implements IVisual {
         // Define spacings for Y axis
         let axisOffset = 0;
         const axisSpacing = 40;
-
-        console.log(dataSeries.find(item => item.value === "A").color)
 
         const self = this;
 
@@ -286,8 +293,8 @@ export class Visual implements IVisual {
                 .attr('d', line)
                 .on('click', function (event, d) {
                     // Stop the click event from propagating to the svg background
-                    event.stopPropagation();
-                    highlightCategory(category);
+                    // event.stopPropagation();
+                    // highlightCategory(category);
                 });
 
             // Draw the points
@@ -328,6 +335,8 @@ export class Visual implements IVisual {
                     event.stopPropagation();
                     const category = d3.select(this).attr('data-category');
                     highlightCategory(category);
+                    const multiSelect = (event as MouseEvent).ctrlKey;
+                    self.selectionManager.select(dataSeries.find(item => item.value === category).selection, multiSelect);
                 });
 
             // Draw the y-axis
@@ -349,12 +358,19 @@ export class Visual implements IVisual {
             axisOffset += axisSpacing;
         });
 
+        // svg.selectAll('.y.axis')
+        // .addEventListener("click", (mouseEvent) => {
+        //     const multiSelect = (mouseEvent as MouseEvent).ctrlKey;
+        //     this.selectionManager.select(seriesSelectionId, multiSelect);
+        // });
+
         // Add click event to axes for highlighting
         svg.selectAll('.y.axis')
             .on('click', function (event) {
                 event.stopPropagation();
                 const category = d3.select(this).attr('data-category');
                 highlightCategory(category);
+            
             });
 
         // Click event on the background to reset opacity
