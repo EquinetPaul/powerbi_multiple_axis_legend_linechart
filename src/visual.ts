@@ -36,8 +36,17 @@ import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import DataView = powerbi.DataView;
 import ISandboxExtendedColorPalette = powerbi.extensibility.ISandboxExtendedColorPalette;
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
+import ISelectionId = powerbi.visuals.ISelectionId;
+import IColorPalette = powerbi.extensibility.IColorPalette;
+import DataViewValueColumns = powerbi.DataViewValueColumns;
+import DataViewValueColumnGroup = powerbi.DataViewValueColumnGroup;
+import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
+import ILocalizationManager = powerbi.extensibility.ILocalizationManager;
+
 import { createTooltipServiceWrapper, ITooltipServiceWrapper } from "powerbi-visuals-utils-tooltiputils";
+import { ColorHelper } from "powerbi-visuals-utils-colorutils";
 import { VisualFormattingSettingsModel } from "./settings";
+
 
 // Represents an individual data point in the chart
 interface DataPoint {
@@ -54,6 +63,13 @@ interface VisualData {
     yScales: { [key: string]: d3.ScaleLinear<number, number> }; // Y-axis scales for each category
 }
 
+export interface dataSerie {
+    value: powerbi.PrimitiveValue;
+    selection: ISelectionId,
+    color: string;
+}
+
+
 
 export class Visual implements IVisual {
     // Variables for SVG elements, dimensions, and settings
@@ -68,11 +84,16 @@ export class Visual implements IVisual {
     private formattingSettings: VisualFormattingSettingsModel;
     private formattingSettingsService: FormattingSettingsService;
 
+    private colorPalette: IColorPalette;
+    private localizationManager: ILocalizationManager;
+
     // Constructor initializes the visual, sets up the SVG container, and applies initial settings
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
-        this.formattingSettingsService = new FormattingSettingsService();
+        this.formattingSettingsService = new FormattingSettingsService(this.localizationManager);
         this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
+        this.localizationManager = this.host.createLocalizationManager();
+        this.colorPalette = options.host.colorPalette;
         this.svg = d3.select(options.element)
             .append('svg')
             .classed('line-chart', true);
@@ -86,7 +107,11 @@ export class Visual implements IVisual {
 
     public update(options: VisualUpdateOptions) {
         // Get formating settings
-        this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(VisualFormattingSettingsModel, options.dataViews[0]);
+        this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(VisualFormattingSettingsModel, options.dataViews?.[0]);
+
+        // Generate data for series
+        const dataSeries: dataSerie[] = this.getSeriesData(options)
+        this.formattingSettings.populateColorSelector(dataSeries);
 
         // Adjust the right margin based on the number of categories  
         this.margin.right = 40 * options.dataViews[0].categorical.values.length
@@ -100,7 +125,49 @@ export class Visual implements IVisual {
         const visualData = this.getVisualData(dataView, this.host, this.formattingSettings);
 
         // Draw the chart with the processed data and formatting settings
-        this.drawChart(visualData, this.host, this.formattingSettings);
+        this.drawChart(visualData, this.host, this.formattingSettings, dataSeries);
+
+    }
+
+    private getSeriesData(options) {
+        const dataSeries: dataSerie[] = [];
+
+        const series: powerbi.DataViewValueColumnGroup[] = options.dataViews[0].categorical.values.grouped();
+
+        const valueColumns: DataViewValueColumns = options.dataViews[0].categorical.values,
+            grouped: DataViewValueColumnGroup[] = valueColumns.grouped(),
+            defaultDataPointColor: string = "green",
+            fillProp: DataViewObjectPropertyIdentifier = {
+                objectName: "colorSelector",
+                propertyName: "fill"
+            };
+
+        series.forEach((ser: powerbi.DataViewValueColumnGroup, index) => {
+            // create selection id for series
+            const seriesSelectionId = this.host.createSelectionIdBuilder()
+                .withSeries(options.dataViews[0].categorical.values, ser)
+                .createSelectionId();
+
+
+            // get the color from series
+            const defaultDataPointColor: string = this.colorPalette.getColor(ser.name.toString()).value;
+            let colorHelper: ColorHelper = new ColorHelper(
+                this.colorPalette,
+                fillProp,
+                defaultDataPointColor);
+            let grouping: DataViewValueColumnGroup = grouped[index];
+            let color = colorHelper.getColorForSeriesValue(grouping.objects, grouping.name);
+
+            // create the series elements
+            dataSeries.push({
+                value: ser.name,
+                selection: seriesSelectionId,
+                color: color
+            });
+
+        });
+
+        return dataSeries
 
     }
 
@@ -167,7 +234,7 @@ export class Visual implements IVisual {
         };
     }
 
-    private drawChart(data: VisualData, host: IVisualHost, formattingSettings: VisualFormattingSettingsModel) {
+    private drawChart(data: VisualData, host: IVisualHost, formattingSettings: VisualFormattingSettingsModel, dataSeries: dataSerie[]) {
         // Get color palette from host
         const colorPalette: ISandboxExtendedColorPalette = host.colorPalette;
 
@@ -202,6 +269,8 @@ export class Visual implements IVisual {
         let axisOffset = 0;
         const axisSpacing = 40;
 
+        console.log(dataSeries.find(item => item.value === "A").color)
+
         const self = this;
 
         series.forEach((dataPoints, category) => {
@@ -212,7 +281,7 @@ export class Visual implements IVisual {
                 .datum(dataPoints)
                 .attr('class', 'line')
                 .attr('fill', 'none')
-                .attr('stroke', colorPalette.getColor(category).value as string)
+                .attr('stroke', dataSeries.find(item => item.value === category).color)
                 .attr('stroke-width', 1.5)
                 .attr('d', line)
                 .on('click', function (event, d) {
@@ -230,7 +299,7 @@ export class Visual implements IVisual {
                 .attr('cx', d => xScale(d.date))
                 .attr('cy', d => yScale(d.value))
                 .attr('r', 3)
-                .attr('fill', colorPalette.getColor(category).value as string)
+                .attr('fill', dataSeries.find(item => item.value === category).color)
                 .attr('opacity', formattingSettings.generalSettings.displayPoints.value ? 1 : 0)
                 .on('mouseover', function (event, d) {
                     d3.select(this).attr('stroke', 'black').attr('stroke-width', 2);
@@ -271,7 +340,7 @@ export class Visual implements IVisual {
                     .ticks(5)
                     .tickFormat(d3.format('.2s')))  // Utilisation du formateur ici
                 .append('text')
-                .attr('fill', colorPalette.getColor(category).value as string)
+                .attr('fill', dataSeries.find(item => item.value === category).color)
                 .attr('text-anchor', 'start')
                 .attr('x', 0)
                 .attr('y', -10)
@@ -337,7 +406,7 @@ export class Visual implements IVisual {
                     const tooltipContent = closestDataPoints.map(d =>
                         `<div style="display: flex; align-items: center;">
                     <svg width="10" height="10" style="margin-right: 5px;">
-                        <circle cx="5" cy="5" r="5" fill="${colorPalette.getColor(d.category).value as string}" />
+                        <circle cx="5" cy="5" r="5" fill="${dataSeries.find(item => item.value === d.category).color}" />
                     </svg>
                     ${d.category}: ${d.value}
                 </div>`
