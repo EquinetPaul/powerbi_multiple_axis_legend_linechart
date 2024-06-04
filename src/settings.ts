@@ -34,10 +34,24 @@ import FormattingSettingsCard = formattingSettings.SimpleCard;
 import FormattingSettingsSlice = formattingSettings.Slice;
 import FormattingSettingsModel = formattingSettings.Model;
 import ColorPicker = formattingSettings.ColorPicker;
+import ToggleSwitch = formattingSettings.ToggleSwitch;
+import AutoDropdown = formattingSettings.AutoDropdown;
 
 class ColorSelectorCardSettings extends FormattingSettingsCard {
     name: string = "colorSelector";
-    displayName: string = "Lines Colors";
+    displayName: string = "Legend Colors";
+    slices: FormattingSettingsSlice[] = [];
+}
+
+class StyleSelectorCardSettings extends FormattingSettingsCard {
+    name: string = "styleSelector";
+    displayName: string = "Legend Styles";
+    slices: FormattingSettingsSlice[] = [];
+}
+
+class AxisSelectorCardSettings extends FormattingSettingsCard {
+    name: string = "axisSelector";
+    displayName: string = "Display Axis";
     slices: FormattingSettingsSlice[] = [];
 }
 
@@ -49,13 +63,13 @@ class GeneralSettings extends FormattingSettingsCard {
     displayPoints = new formattingSettings.ToggleSwitch({
         name: "displayPoints",
         displayName: "Display Points",
-        value: false,
+        value: false
     })
 
     autoScaleY = new formattingSettings.ToggleSwitch({
         name: "autoScaleY",
         displayName: "Auto Scale Y",
-        value: true,
+        value: true
     })
 
     minRangeY = new formattingSettings.NumUpDown({
@@ -85,8 +99,10 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     // Create formatting settings model formatting cards
     generalSettings = new GeneralSettings();
     colorSelector = new ColorSelectorCardSettings();
+    styleSelector = new StyleSelectorCardSettings();
+    axisSelector = new AxisSelectorCardSettings();
 
-    cards: FormattingSettingsCard[] = [this.generalSettings, this.colorSelector];
+    cards: FormattingSettingsCard[] = [this.generalSettings, this.colorSelector, this.styleSelector, this.axisSelector];
 
     public displayInputFieldsAxisY() {
         this.generalSettings.minRangeY.visible = true
@@ -108,6 +124,34 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
                     value: { value: dataPoint.color },
                     selector: dataPoint.selection.getSelector(),
                 }));
+            });
+        }
+    }
+
+    populateStyleSelector(dataPoints: dataSerie[]) {
+        const slices: FormattingSettingsSlice[] = this.styleSelector.slices;
+        if (dataPoints) {
+            dataPoints.forEach(dataPoint => {
+                slices.push(new AutoDropdown({
+                    name: "enumeration",
+                    displayName: dataPoint.value.toString(),
+                    value: dataPoint.style,
+                    selector: dataPoint.selection.getSelector(),
+                }))
+            });
+        }
+    }
+
+    populateAxisSelector(dataPoints: dataSerie[]) {
+        const slices: FormattingSettingsSlice[] = this.axisSelector.slices;
+        if (dataPoints) {
+            dataPoints.forEach(dataPoint => {
+                slices.push(new ToggleSwitch({
+                    name: "bool",
+                    displayName: dataPoint.value.toString(),
+                    value: dataPoint.displayAxis,
+                    selector: dataPoint.selection.getSelector(),
+                }))
             });
         }
     }

@@ -47,6 +47,7 @@ import ISelectionManager = powerbi.extensibility.ISelectionManager;
 import { createTooltipServiceWrapper, ITooltipServiceWrapper } from "powerbi-visuals-utils-tooltiputils";
 import { ColorHelper } from "powerbi-visuals-utils-colorutils";
 import { VisualFormattingSettingsModel } from "./settings";
+import { dataViewObjects } from "powerbi-visuals-utils-dataviewutils";
 
 
 // Represents an individual data point in the chart
@@ -68,6 +69,8 @@ export interface dataSerie {
     value: powerbi.PrimitiveValue;
     selection: ISelectionId,
     color: string;
+    style: string;
+    displayAxis: boolean
 }
 
 
@@ -115,9 +118,13 @@ export class Visual implements IVisual {
         // Generate data for series
         const dataSeries: dataSerie[] = this.getSeriesData(options)
         this.formattingSettings.populateColorSelector(dataSeries);
+        this.formattingSettings.populateStyleSelector(dataSeries);
+        this.formattingSettings.populateAxisSelector(dataSeries);
 
         // Adjust the right margin based on the number of categories  
         this.margin.right = 40 * options.dataViews[0].categorical.values.length
+
+        console.log(options.dataViews[0].categorical.values.length)
 
         // Calculate width and height based on viewport and margins
         this.width = options.viewport.width - this.margin.left - this.margin.right;
@@ -128,7 +135,9 @@ export class Visual implements IVisual {
         const visualData = this.getVisualData(dataView, this.host, this.formattingSettings);
 
         // Draw the chart with the processed data and formatting settings
-        this.drawChart(visualData, this.host, this.formattingSettings, dataSeries);
+        this.drawChart(visualData, this.host, this.formattingSettings, dataSeries)
+
+
 
     }
 
@@ -143,15 +152,18 @@ export class Visual implements IVisual {
             fillProp: DataViewObjectPropertyIdentifier = {
                 objectName: "colorSelector",
                 propertyName: "fill"
+            },
+            styleProp: DataViewObjectPropertyIdentifier = {
+                objectName: "styleSelector",
+                propertyName: "enumeration"
             };
 
         series.forEach((ser: powerbi.DataViewValueColumnGroup, index) => {
+
             // create selection id for series
             const seriesSelectionId = this.host.createSelectionIdBuilder()
                 .withSeries(options.dataViews[0].categorical.values, ser)
                 .createSelectionId();
-
-            
 
 
             // get the color from series
@@ -163,11 +175,23 @@ export class Visual implements IVisual {
             let grouping: DataViewValueColumnGroup = grouped[index];
             let color = colorHelper.getColorForSeriesValue(grouping.objects, grouping.name);
 
+            let style = "Line";
+            if (grouping.objects && grouping.objects.styleSelector) {
+                style = grouping.objects.styleSelector.enumeration.toString() || "Line";
+            }
+
+            let displayAxis = true;
+            if (grouping.objects && grouping.objects.axisSelector) {
+                displayAxis = grouping.objects.axisSelector.bool.toString() === "true"
+            }
+
             // create the series elements
             dataSeries.push({
                 value: ser.name,
                 selection: seriesSelectionId,
-                color: color
+                color: color,
+                style: style,
+                displayAxis: displayAxis
             });
 
         });
@@ -267,7 +291,7 @@ export class Visual implements IVisual {
             .attr('transform', `translate(0,${this.height})`)
             .call(
                 d3.axisBottom(xScale)
-                .ticks(Math.max(Math.floor(this.width / 100), 2))
+                    .ticks(Math.max(Math.floor(this.width / 100), 2))
                 // .tickFormat(d3.timeFormat("%Y-%m-%d");)
             );
 
@@ -282,15 +306,18 @@ export class Visual implements IVisual {
 
         series.forEach((dataPoints, category) => {
             const yScale = data.yScales[category];
+            const dataSeriesItem = dataSeries.find(item => item.value === category);
 
             // Draw the line
             const path = svg.append('path')
                 .datum(dataPoints)
                 .attr('class', 'line')
                 .attr('fill', 'none')
-                .attr('stroke', dataSeries.find(item => item.value === category).color)
+                .attr('stroke', dataSeriesItem.color)
                 .attr('stroke-width', 1.5)
                 .attr('d', line)
+                .attr('category', category)
+                .attr('opacity', dataSeriesItem.style === "Line" ? 1 : 0)
                 .on('click', function (event, d) {
                     // Stop the click event from propagating to the svg background
                     // event.stopPropagation();
@@ -306,8 +333,9 @@ export class Visual implements IVisual {
                 .attr('cx', d => xScale(d.date))
                 .attr('cy', d => yScale(d.value))
                 .attr('r', 3)
-                .attr('fill', dataSeries.find(item => item.value === category).color)
-                .attr('opacity', formattingSettings.generalSettings.displayPoints.value ? 1 : 0)
+                .attr('fill', dataSeriesItem.color)
+                .attr('category', category)
+                .attr('opacity', dataSeriesItem.style === "Line" ? 0 : 1)
                 .on('mouseover', function (event, d) {
                     d3.select(this).attr('stroke', 'black').attr('stroke-width', 2);
                 })
@@ -315,48 +343,52 @@ export class Visual implements IVisual {
                     d3.select(this).attr('stroke', null).attr('stroke-width', null);
                 });
 
-            // Add background rectangle for the axis
-            svg.append('rect')
-                .attr('class', 'axis-background')
-                .attr('x', this.width + axisOffset)
-                .attr('y', 0)
-                .attr('width', axisSpacing)
-                .attr('height', this.height)
-                .attr('fill', 'transparent')
-                .attr('pointer-events', 'all')
-                .attr('data-category', category)
-                .on('mouseover', function () {
-                    d3.select(this).attr('fill', '#f0f0f0');
-                })
-                .on('mouseout', function () {
-                    d3.select(this).attr('fill', 'transparent');
-                })
-                .on('click', function (event) {
-                    event.stopPropagation();
-                    const category = d3.select(this).attr('data-category');
-                    highlightCategory(category);
-                    const multiSelect = (event as MouseEvent).ctrlKey;
-                    self.selectionManager.select(dataSeries.find(item => item.value === category).selection, multiSelect);
-                });
+            // Only draw the axis if displayAxis is true
+            if (dataSeriesItem.displayAxis) {
+                // Add background rectangle for the axis
+                svg.append('rect')
+                    .attr('class', 'axis-background')
+                    .attr('x', this.width + axisOffset)
+                    .attr('y', 0)
+                    .attr('width', axisSpacing)
+                    .attr('height', this.height)
+                    .attr('fill', 'transparent')
+                    .attr('pointer-events', 'all')
+                    .attr('data-category', category)
+                    .on('mouseover', function () {
+                        d3.select(this).attr('fill', '#f0f0f0');
+                    })
+                    .on('mouseout', function () {
+                        d3.select(this).attr('fill', 'transparent');
+                    })
+                    .on('click', function (event) {
+                        event.stopPropagation();
+                        const category = d3.select(this).attr('data-category');
+                        highlightCategory(category);
+                        const multiSelect = (event as MouseEvent).ctrlKey;
+                        self.selectionManager.select(dataSeries.find(item => item.value === category).selection, multiSelect);
+                    });
 
-            // Draw the y-axis
-            svg.append('g')
-                .attr('class', 'y axis')
-                .attr('transform', `translate(${this.width + axisOffset}, 0)`)
-                .attr('data-category', category) // Add data-category attribute
-                .call(d3.axisRight(yScale)
-                    .tickSize(5)
-                    .ticks(5)
-                    .tickFormat(d3.format('.2s')))  // Utilisation du formateur ici
-                .append('text')
-                .attr('fill', dataSeries.find(item => item.value === category).color)
-                .attr('text-anchor', 'start')
-                .attr('x', 0)
-                .attr('y', -10)
-                .text(category.length > 6 ? category.substring(0, 4) + '..' : category);
+                // Draw the y-axis
+                svg.append('g')
+                    .attr('class', 'y axis')
+                    .attr('transform', `translate(${this.width + axisOffset}, 0)`)
+                    .attr('data-category', category) // Add data-category attribute
+                    .call(d3.axisRight(yScale)
+                        .tickSize(5)
+                        .ticks(5)
+                        .tickFormat(d3.format('.2s')))  // Utilisation du formateur ici
+                    .append('text')
+                    .attr('fill', dataSeriesItem.color)
+                    .attr('text-anchor', 'start')
+                    .attr('x', 0)
+                    .attr('y', -10)
+                    .text(category.length > 6 ? category.substring(0, 4) + '..' : category);
 
-            axisOffset += axisSpacing;
+                axisOffset += axisSpacing;
+            }
         });
+
 
         // svg.selectAll('.y.axis')
         // .addEventListener("click", (mouseEvent) => {
@@ -370,7 +402,7 @@ export class Visual implements IVisual {
                 event.stopPropagation();
                 const category = d3.select(this).attr('data-category');
                 highlightCategory(category);
-            
+
             });
 
         // Click event on the background to reset opacity
@@ -485,18 +517,38 @@ export class Visual implements IVisual {
         // Function to highlight category
         function highlightCategory(category) {
             // Reduce the opacity of all lines and points
-            svg.selectAll('path.line').attr('opacity', 0.2);
-            svg.selectAll('circle').attr('opacity', formattingSettings.generalSettings.displayPoints.value ? 0.2 : 0);
+            svg.selectAll('path.line').attr('opacity', function () {
+                const dataSeriesItem = dataSeries.find(item => item.value === d3.select(this).attr('category'));
+                return dataSeriesItem && dataSeriesItem.style === "Line" ? 0.2 : 0;
+            });
+            svg.selectAll('circle').attr('opacity', function () {
+                const dataSeriesItem = dataSeries.find(item => item.value === d3.select(this).attr('category'));
+                return dataSeriesItem && dataSeriesItem.style === "Point" ? 0.2 : 0;
+            });
 
-            // Highlight the selected line and its points
-            svg.selectAll(`path.line`).filter(function (d) { return d[0].category === category; }).attr('opacity', 1);
-            svg.selectAll(`.point-${category}`).attr('opacity', formattingSettings.generalSettings.displayPoints.value ? 1 : 0);
+            // Highlight the selected line or its points
+            const selectedDataSeriesItem = dataSeries.find(item => item.value === category);
+            if (selectedDataSeriesItem.style === "Line") {
+                svg.selectAll('path.line').filter(function () {
+                    return d3.select(this).attr('category') === category;
+                }).attr('opacity', 1);
+            } else if (selectedDataSeriesItem.style === "Point") {
+                svg.selectAll(`.point-${category}`).attr('opacity', 1);
+            }
         }
+
+
 
         // Function to reset opacity
         function resetOpacity() {
-            svg.selectAll('path.line').attr('opacity', 1);
-            svg.selectAll('circle').attr('opacity', formattingSettings.generalSettings.displayPoints.value ? 1 : 0);
+            svg.selectAll('path.line').attr('opacity', function () {
+                const dataSeriesItem = dataSeries.find(item => item.value === d3.select(this).attr('category'));
+                return dataSeriesItem && dataSeriesItem.style === "Line" ? 1 : 0;
+            });
+            svg.selectAll('circle').attr('opacity', function () {
+                const dataSeriesItem = dataSeries.find(item => item.value === d3.select(this).attr('category'));
+                return dataSeriesItem && dataSeriesItem.style === "Point" ? 1 : 0;
+            });
         }
     }
 
