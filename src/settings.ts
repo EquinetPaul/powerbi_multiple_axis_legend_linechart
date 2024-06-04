@@ -49,6 +49,12 @@ class StyleSelectorCardSettings extends FormattingSettingsCard {
     slices: FormattingSettingsSlice[] = [];
 }
 
+class AxisSelectorCardSettings extends FormattingSettingsCard {
+    name: string = "axisSelector";
+    displayName: string = "Display Axis";
+    slices: FormattingSettingsSlice[] = [];
+}
+
 /**
  * Data Point Formatting Card
  */
@@ -94,8 +100,9 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     generalSettings = new GeneralSettings();
     colorSelector = new ColorSelectorCardSettings();
     styleSelector = new StyleSelectorCardSettings();
+    axisSelector = new AxisSelectorCardSettings();
 
-    cards: FormattingSettingsCard[] = [this.generalSettings, this.colorSelector, this.styleSelector];
+    cards: FormattingSettingsCard[] = [this.generalSettings, this.colorSelector, this.styleSelector, this.axisSelector];
 
     public displayInputFieldsAxisY() {
         this.generalSettings.minRangeY.visible = true
@@ -129,6 +136,20 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
                     name: "enumeration",
                     displayName: dataPoint.value.toString(),
                     value: dataPoint.style,
+                    selector: dataPoint.selection.getSelector(),
+                }))
+            });
+        }
+    }
+
+    populateAxisSelector(dataPoints: dataSerie[]) {
+        const slices: FormattingSettingsSlice[] = this.axisSelector.slices;
+        if (dataPoints) {
+            dataPoints.forEach(dataPoint => {
+                slices.push(new ToggleSwitch({
+                    name: "bool",
+                    displayName: dataPoint.value.toString(),
+                    value: dataPoint.displayAxis,
                     selector: dataPoint.selection.getSelector(),
                 }))
             });

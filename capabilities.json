@@ -107,6 +107,15 @@
                     }
                 }
             }
+        },
+        "axisSelector": {
+            "properties": {
+                "bool": {
+                    "type": {
+                        "bool": true
+                    }
+                }
+            }
         }
     },
     "privileges": []
