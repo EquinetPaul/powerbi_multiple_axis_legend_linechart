@@ -76,14 +76,16 @@ class GeneralSettings extends FormattingSettingsCard {
         name: "minRangeY",
         displayName: "Min Range Y",
         value: -99999,
-        visible: false
+        visible: false,
+        instanceKind: powerbi.VisualEnumerationInstanceKinds.ConstantOrRule
     });
 
     maxRangeY = new formattingSettings.NumUpDown({
         name: "maxRangeY",
         displayName: "Max Range Y",
         value: 99999,
-        visible: false
+        visible: false,
+        instanceKind: powerbi.VisualEnumerationInstanceKinds.ConstantOrRule
     });
 
     name: string = "general";

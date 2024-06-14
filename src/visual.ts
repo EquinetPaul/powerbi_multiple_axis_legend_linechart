@@ -65,6 +65,7 @@ interface VisualData {
     yScales: { [key: string]: d3.ScaleLinear<number, number> }; // Y-axis scales for each category
 }
 
+// Represents the series (used for selection)
 export interface dataSerie {
     value: powerbi.PrimitiveValue;
     selection: ISelectionId,
@@ -72,8 +73,6 @@ export interface dataSerie {
     style: string;
     displayAxis: boolean
 }
-
-
 
 export class Visual implements IVisual {
     // Variables for SVG elements, dimensions, and settings
@@ -122,9 +121,7 @@ export class Visual implements IVisual {
         this.formattingSettings.populateAxisSelector(dataSeries);
 
         // Adjust the right margin based on the number of categories  
-        this.margin.right = 40 * options.dataViews[0].categorical.values.length
-
-        console.log(options.dataViews[0].categorical.values.length)
+        this.margin.right = 40 * countTrueBools(this.formattingSettings.axisSelector.slices)
 
         // Calculate width and height based on viewport and margins
         this.width = options.viewport.width - this.margin.left - this.margin.right;
@@ -557,4 +554,8 @@ export class Visual implements IVisual {
         return this.formattingSettingsService.buildFormattingModel(this.formattingSettings);
     }
 
+}
+
+function countTrueBools(arr) {
+    return arr.filter(item => item.name === "bool" && item.value === true).length;
 }
