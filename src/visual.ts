@@ -119,6 +119,7 @@ export class Visual implements IVisual {
         this.formattingSettings.populateColorSelector(dataSeries);
         this.formattingSettings.populateStyleSelector(dataSeries);
         this.formattingSettings.populateAxisSelector(dataSeries);
+        this.formattingSettings.hideAllAxis()
 
         // Adjust the right margin based on the number of categories  
         this.margin.right = 40 * countTrueBools(this.formattingSettings.axisSelector.slices)

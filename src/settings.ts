@@ -50,9 +50,15 @@ class StyleSelectorCardSettings extends FormattingSettingsCard {
 }
 
 class AxisSelectorCardSettings extends FormattingSettingsCard {
+    hideAllAxis = new formattingSettings.ToggleSwitch({
+        name: "hideAllAxis",
+        displayName: "Hide All",
+        value: false
+    })
+
     name: string = "axisSelector";
     displayName: string = "Display Axis";
-    slices: FormattingSettingsSlice[] = [];
+    slices: FormattingSettingsSlice[] = [this.hideAllAxis];
 }
 
 /**
@@ -156,5 +162,20 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
                 }))
             });
         }
+    }
+
+    hideAllAxis() {
+        this.axisSelector.slices.forEach(slice => {
+            if (slice.displayName != "Hide All") {
+                if(this.axisSelector.hideAllAxis.value) {
+                    slice.visible = false
+                    slice["value"] = false
+                }
+                else {
+                    slice.visible = true
+                }
+                
+            }
+        })
     }
 }

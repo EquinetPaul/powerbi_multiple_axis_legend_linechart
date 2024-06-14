@@ -110,6 +110,11 @@
         },
         "axisSelector": {
             "properties": {
+                "hideAllAxis": {
+                    "type": {
+                        "bool": true
+                    }
+                },
                 "bool": {
                     "type": {
                         "bool": true
