@@ -56,3 +56,7 @@ pbiviz start
 - Hide/Display Axis button
 - Autoscale : conditional formatting
 - General Formatting pane: Line width
+
+Todo:
+- Tooltip on: Line/Point
+- Hide/Display Axis button: find another way to use it

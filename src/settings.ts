@@ -56,7 +56,7 @@ class AxisSelectorCardSettings extends FormattingSettingsCard {
         displayName: "Hide All",
         value: false
     })
-
+    
     name: string = "axisSelector";
     displayName: string = "Display Axis";
     slices: FormattingSettingsSlice[] = [this.hideAllAxis];
