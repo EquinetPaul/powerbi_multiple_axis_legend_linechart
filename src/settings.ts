@@ -27,7 +27,7 @@
 "use strict";
 
 import { formattingSettings } from "powerbi-visuals-utils-formattingmodel";
-
+import powerbiVisualsApi from "powerbi-visuals-api";
 import { dataSerie } from "./visual";
 
 import FormattingSettingsCard = formattingSettings.SimpleCard;
@@ -36,6 +36,7 @@ import FormattingSettingsModel = formattingSettings.Model;
 import ColorPicker = formattingSettings.ColorPicker;
 import ToggleSwitch = formattingSettings.ToggleSwitch;
 import AutoDropdown = formattingSettings.AutoDropdown;
+import NumUpDown = formattingSettings.NumUpDown;
 
 class ColorSelectorCardSettings extends FormattingSettingsCard {
     name: string = "colorSelector";
@@ -94,9 +95,25 @@ class GeneralSettings extends FormattingSettingsCard {
         instanceKind: powerbi.VisualEnumerationInstanceKinds.ConstantOrRule
     });
 
+    lineWidth = new NumUpDown({
+        name: "lineWidth",
+        displayName: "Line Width",
+        value: 3,
+        options: {
+            minValue: {
+                type: powerbiVisualsApi.visuals.ValidatorType.Min,
+                value: 1,
+            },
+            maxValue: {
+                type: powerbiVisualsApi.visuals.ValidatorType.Max,
+                value: 5,
+            }
+        }
+    });
+
     name: string = "general";
     displayName: string = "General";
-    slices: Array<FormattingSettingsSlice> = [this.displayPoints, this.autoScaleY, this.minRangeY, this.maxRangeY];
+    slices: Array<FormattingSettingsSlice> = [this.displayPoints, this.autoScaleY, this.minRangeY, this.maxRangeY, this.lineWidth];
 }
 
 /**

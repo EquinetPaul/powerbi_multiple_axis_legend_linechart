@@ -293,6 +293,45 @@ export class Visual implements IVisual {
                 // .tickFormat(d3.timeFormat("%Y-%m-%d");)
             );
 
+        // Define a single yScale for the gridlines using the maximum range of all categories
+        const yScaleForGrid = d3.scaleLinear()
+            .domain([0, d3.max(data.dataPoints, d => d.value)])
+            .range([this.height, 0]);
+
+        // Add gridlines
+        const xAxisGrid = d3.axisBottom(xScale)
+            .ticks(Math.max(Math.floor(this.width / 100), 2))
+            .tickSize(-this.height)
+            .tickFormat(null);
+
+        const yAxisGrid = d3.axisLeft(yScaleForGrid)
+            .ticks(5)
+            .tickSize(-this.width)
+            .tickFormat(null);
+
+        // Append x-axis grid
+        svg.append('g')
+            .attr('class', 'x grid')
+            .attr('transform', `translate(0,${this.height})`)
+            .call(xAxisGrid)
+            .call(g => g.select(".domain").remove())  // Remove the axis line
+            .call(g => g.selectAll(".tick text").remove())  // Remove the tick labels
+            .call(g => g.selectAll(".tick line")
+                .attr('stroke', '#ccc')  // Change color
+                .attr('opacity', 0.5)    // Change opacity
+                .attr('stroke-dasharray', '4,2'));  // Change line style
+
+        // Append y-axis grid
+        svg.append('g')
+            .attr('class', 'y grid')
+            .call(yAxisGrid)
+            .call(g => g.select(".domain").remove())  // Remove the axis line
+            .call(g => g.selectAll(".tick text").remove())  // Remove the tick labels
+            .call(g => g.selectAll(".tick line")
+                .attr('stroke', '#ccc')  // Change color
+                .attr('opacity', 0.5)    // Change opacity
+                .attr('stroke-dasharray', '4,2'));  // Change line style
+
         // Group data points by category
         const series = d3.group(data.dataPoints, d => d.category);
 
@@ -301,6 +340,8 @@ export class Visual implements IVisual {
         const axisSpacing = 40;
 
         const self = this;
+
+        const lineWidth = this.formattingSettings.generalSettings.lineWidth.value
 
         series.forEach((dataPoints, category) => {
             const yScale = data.yScales[category];
@@ -312,10 +353,10 @@ export class Visual implements IVisual {
                 .attr('class', 'line')
                 .attr('fill', 'none')
                 .attr('stroke', dataSeriesItem.color)
-                .attr('stroke-width', 1.5)
+                .attr('stroke-width', lineWidth)
                 .attr('d', line)
                 .attr('category', category)
-                .attr('opacity', dataSeriesItem.style === "Line" ? 1 : 0)
+                .attr('opacity', dataSeriesItem.style === "Line" ? lineWidth : 0)
                 .on('click', function (event, d) {
                     // Stop the click event from propagating to the svg background
                     // event.stopPropagation();

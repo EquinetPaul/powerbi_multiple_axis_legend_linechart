@@ -74,6 +74,11 @@
                     "type": {
                         "numeric": true
                     }
+                },
+                "lineWidth": {
+                    "type": {
+                        "integer": true
+                    }
                 }
             }
         },
