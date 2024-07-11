@@ -67,12 +67,6 @@ class AxisSelectorCardSettings extends FormattingSettingsCard {
  */
 class GeneralSettings extends FormattingSettingsCard {
 
-    displayPoints = new formattingSettings.ToggleSwitch({
-        name: "displayPoints",
-        displayName: "Display Points",
-        value: false
-    })
-
     autoScaleY = new formattingSettings.ToggleSwitch({
         name: "autoScaleY",
         displayName: "Auto Scale Y",
@@ -113,7 +107,7 @@ class GeneralSettings extends FormattingSettingsCard {
 
     name: string = "general";
     displayName: string = "General";
-    slices: Array<FormattingSettingsSlice> = [this.displayPoints, this.autoScaleY, this.minRangeY, this.maxRangeY, this.lineWidth];
+    slices: Array<FormattingSettingsSlice> = [this.autoScaleY, this.minRangeY, this.maxRangeY, this.lineWidth];
 }
 
 /**

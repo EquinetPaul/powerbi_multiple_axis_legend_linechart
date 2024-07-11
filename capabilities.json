@@ -55,11 +55,6 @@
     "objects": {
         "general": {
             "properties": {
-                "displayPoints": {
-                    "type": {
-                        "bool": true
-                    }
-                },
                 "autoScaleY": {
                     "type": {
                         "bool": true
