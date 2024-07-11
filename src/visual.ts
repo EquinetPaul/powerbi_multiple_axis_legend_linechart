@@ -108,6 +108,10 @@ export class Visual implements IVisual {
             .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
     }
 
+    private checkDataValidity(options) {
+        
+    }
+
     public update(options: VisualUpdateOptions) {
         // Get formating settings
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(VisualFormattingSettingsModel, options.dataViews?.[0]);
@@ -132,8 +136,6 @@ export class Visual implements IVisual {
 
         // Draw the chart with the processed data and formatting settings
         this.drawChart(visualData, this.host, this.formattingSettings, dataSeries)
-
-
 
     }
 
