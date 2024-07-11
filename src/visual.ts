@@ -47,8 +47,6 @@ import ISelectionManager = powerbi.extensibility.ISelectionManager;
 import { createTooltipServiceWrapper, ITooltipServiceWrapper } from "powerbi-visuals-utils-tooltiputils";
 import { ColorHelper } from "powerbi-visuals-utils-colorutils";
 import { VisualFormattingSettingsModel } from "./settings";
-import { dataViewObjects } from "powerbi-visuals-utils-dataviewutils";
-
 
 // Represents an individual data point in the chart
 interface DataPoint {
@@ -146,15 +144,10 @@ export class Visual implements IVisual {
 
         const valueColumns: DataViewValueColumns = options.dataViews[0].categorical.values,
             grouped: DataViewValueColumnGroup[] = valueColumns.grouped(),
-            defaultDataPointColor: string = "green",
             fillProp: DataViewObjectPropertyIdentifier = {
                 objectName: "colorSelector",
                 propertyName: "fill"
-            },
-            styleProp: DataViewObjectPropertyIdentifier = {
-                objectName: "styleSelector",
-                propertyName: "enumeration"
-            };
+            }
 
         series.forEach((ser: powerbi.DataViewValueColumnGroup, index) => {
 
@@ -166,12 +159,12 @@ export class Visual implements IVisual {
 
             // get the color from series
             const defaultDataPointColor: string = this.colorPalette.getColor(ser.name.toString()).value;
-            let colorHelper: ColorHelper = new ColorHelper(
+            const colorHelper: ColorHelper = new ColorHelper(
                 this.colorPalette,
                 fillProp,
                 defaultDataPointColor);
-            let grouping: DataViewValueColumnGroup = grouped[index];
-            let color = colorHelper.getColorForSeriesValue(grouping.objects, grouping.name);
+            const grouping: DataViewValueColumnGroup = grouped[index];
+            const color = colorHelper.getColorForSeriesValue(grouping.objects, grouping.name);
 
             let style = "Line";
             if (grouping.objects && grouping.objects.styleSelector) {
@@ -262,8 +255,6 @@ export class Visual implements IVisual {
     }
 
     private drawChart(data: VisualData, host: IVisualHost, formattingSettings: VisualFormattingSettingsModel, dataSeries: dataSerie[]) {
-        // Get color palette from host
-        const colorPalette: ISandboxExtendedColorPalette = host.colorPalette;
 
         // Create xScale for time-based data
         // TODO: Manage different type of data (not just time-based)
@@ -348,7 +339,7 @@ export class Visual implements IVisual {
             const dataSeriesItem = dataSeries.find(item => item.value === category);
 
             // Draw the line
-            const path = svg.append('path')
+            svg.append('path')
                 .datum(dataPoints)
                 .attr('class', 'line')
                 .attr('fill', 'none')
@@ -357,11 +348,6 @@ export class Visual implements IVisual {
                 .attr('d', line)
                 .attr('category', category)
                 .attr('opacity', dataSeriesItem.style === "Line" ? lineWidth : 0)
-                .on('click', function (event, d) {
-                    // Stop the click event from propagating to the svg background
-                    // event.stopPropagation();
-                    // highlightCategory(category);
-                });
 
             // Draw the points
             svg.selectAll(`.point-${category}`)
@@ -375,10 +361,10 @@ export class Visual implements IVisual {
                 .attr('fill', dataSeriesItem.color)
                 .attr('category', category)
                 .attr('opacity', dataSeriesItem.style === "Line" ? 0 : 1)
-                .on('mouseover', function (event, d) {
+                .on('mouseover', function () {
                     d3.select(this).attr('stroke', 'black').attr('stroke-width', 2);
                 })
-                .on('mouseout', function (event, d) {
+                .on('mouseout', function () {
                     d3.select(this).attr('stroke', null).attr('stroke-width', null);
                 });
 
@@ -471,7 +457,7 @@ export class Visual implements IVisual {
 
         // Overlay to capture mouse movements
         let tooltipTimeout;
-        const overlay = svg.append('rect')
+        svg.append('rect')
             .attr('class', 'overlay')
             .attr('width', this.width)
             .attr('height', this.height)
