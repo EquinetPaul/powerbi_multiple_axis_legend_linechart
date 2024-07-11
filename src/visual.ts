@@ -254,26 +254,7 @@ export class Visual implements IVisual {
         };
     }
 
-    private drawChart(data: VisualData, host: IVisualHost, formattingSettings: VisualFormattingSettingsModel, dataSeries: dataSerie[]) {
-
-        // Create xScale for time-based data
-        // TODO: Manage different type of data (not just time-based)
-        const xScale = d3.scaleTime()
-            .domain(d3.extent(data.dataPoints, d => d.date) as [Date, Date])
-            .range([0, this.width]);
-
-        // Define the line generator function
-        const line = d3.line<DataPoint>()
-            .x(d => xScale(d.date))
-            .y(d => {
-                const yScale = data.yScales[d.category];
-                return yScale(d.value);
-            });
-
-        // Clear previous chart elements
-        const svg = this.svg.select<SVGGElement>('g');
-        svg.selectAll('*').remove();
-
+    private drawXAxis(svg, xScale) {
         // Append x-axis
         svg.append('g')
             .attr('class', 'x axis')
@@ -283,7 +264,9 @@ export class Visual implements IVisual {
                     .ticks(Math.max(Math.floor(this.width / 100), 2))
                 // .tickFormat(d3.timeFormat("%Y-%m-%d");)
             );
+    }
 
+    private drawGrids(svg, xScale, data: VisualData) {
         // Define a single yScale for the gridlines using the maximum range of all categories
         const yScaleForGrid = d3.scaleLinear()
             .domain([0, d3.max(data.dataPoints, d => d.value)])
@@ -322,6 +305,33 @@ export class Visual implements IVisual {
                 .attr('stroke', '#ccc')  // Change color
                 .attr('opacity', 0.5)    // Change opacity
                 .attr('stroke-dasharray', '4,2'));  // Change line style
+    }
+
+    private drawChart(data: VisualData, host: IVisualHost, formattingSettings: VisualFormattingSettingsModel, dataSeries: dataSerie[]) {
+
+        // Create xScale for time-based data
+        // TODO: Manage different type of data (not just time-based)
+        const xScale = d3.scaleTime()
+            .domain(d3.extent(data.dataPoints, d => d.date) as [Date, Date])
+            .range([0, this.width]);
+
+        // Define the line generator function
+        const line = d3.line<DataPoint>()
+            .x(d => xScale(d.date))
+            .y(d => {
+                const yScale = data.yScales[d.category];
+                return yScale(d.value);
+            });
+
+        // Clear previous chart elements
+        const svg = this.svg.select<SVGGElement>('g');
+        svg.selectAll('*').remove();
+
+        // Append x-axis
+        this.drawXAxis(svg, xScale)
+
+        // Draw Grids
+        this.drawGrids(svg, xScale, data)
 
         // Group data points by category
         const series = d3.group(data.dataPoints, d => d.category);

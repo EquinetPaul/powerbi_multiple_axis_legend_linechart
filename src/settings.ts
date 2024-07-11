@@ -54,7 +54,7 @@ class AxisSelectorCardSettings extends FormattingSettingsCard {
     hideAllAxis = new formattingSettings.ToggleSwitch({
         name: "hideAllAxis",
         displayName: "Hide All",
-        value: false
+        value: true
     })
     
     name: string = "axisSelector";
