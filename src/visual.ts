@@ -424,13 +424,6 @@ export class Visual implements IVisual {
             }
         });
 
-
-        // svg.selectAll('.y.axis')
-        // .addEventListener("click", (mouseEvent) => {
-        //     const multiSelect = (mouseEvent as MouseEvent).ctrlKey;
-        //     this.selectionManager.select(seriesSelectionId, multiSelect);
-        // });
-
         // Add click event to axes for highlighting
         svg.selectAll('.y.axis')
             .on('click', function (event) {
@@ -495,7 +488,17 @@ export class Visual implements IVisual {
                 </div>`
                     ).join("");
 
-                    tooltip.html(`<div><strong>${closestDataPoints[0].date.toDateString()}</strong></div>${tooltipContent}`);
+                    // Vider le contenu du tooltip avant d'ajouter de nouveaux éléments
+                    tooltip.selectAll("*").remove();
+
+                    // Ajouter la date avec un élément <strong>
+                    tooltip.append("div")
+                        .append("strong")
+                        .text(closestDataPoints[0].date.toDateString());
+
+                    // Ajouter le contenu du tooltip
+                    tooltip.append("div")
+                        .html(tooltipContent); // Assurez-vous que tooltipContent est sûr ou échappez les caractères dangereux
 
                     // Calculate tooltip position
                     const tooltipWidth = tooltip.node().getBoundingClientRect().width;
