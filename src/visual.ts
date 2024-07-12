@@ -143,6 +143,10 @@ export class Visual implements IVisual {
 
     public update(options: VisualUpdateOptions) {
 
+        if (!options.dataViews || !options.dataViews[0] || !options.dataViews[0].categorical || options.dataViews.length === 0) {
+            return;
+        }
+
         // Get formating settings
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(VisualFormattingSettingsModel, options.dataViews?.[0]);
 
