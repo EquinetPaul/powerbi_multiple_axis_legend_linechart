@@ -56,7 +56,7 @@ class AxisSelectorCardSettings extends FormattingSettingsCard {
         displayName: "Hide All",
         value: true
     })
-    
+
     name: string = "axisSelector";
     displayName: string = "Display Axis";
     slices: FormattingSettingsSlice[] = [this.hideAllAxis];
@@ -110,6 +110,18 @@ class GeneralSettings extends FormattingSettingsCard {
     slices: Array<FormattingSettingsSlice> = [this.autoScaleY, this.minRangeY, this.maxRangeY, this.lineWidth];
 }
 
+class FetchMoreDataCardSettings extends FormattingSettingsCard {
+    do = new formattingSettings.ToggleSwitch({
+        name: "do",
+        displayName: "Apply",
+        value: false
+    })
+    
+    name: string = "fetchMoreData";
+    displayName: string = "Fetch More Data";
+    slices: FormattingSettingsSlice[] = [this.do];
+}
+
 /**
 * visual settings model class
 *
@@ -120,8 +132,9 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     colorSelector = new ColorSelectorCardSettings();
     styleSelector = new StyleSelectorCardSettings();
     axisSelector = new AxisSelectorCardSettings();
+    fetchMoreData = new FetchMoreDataCardSettings();
 
-    cards: FormattingSettingsCard[] = [this.generalSettings, this.colorSelector, this.styleSelector, this.axisSelector];
+    cards: FormattingSettingsCard[] = [this.generalSettings, this.colorSelector, this.styleSelector, this.axisSelector, this.fetchMoreData];
 
     public displayInputFieldsAxisY() {
         this.generalSettings.minRangeY.visible = true
@@ -178,14 +191,14 @@ export class VisualFormattingSettingsModel extends FormattingSettingsModel {
     hideAllAxis() {
         this.axisSelector.slices.forEach(slice => {
             if (slice.displayName != "Hide All") {
-                if(this.axisSelector.hideAllAxis.value) {
+                if (this.axisSelector.hideAllAxis.value) {
                     slice.visible = false
                     slice["value"] = false
                 }
                 else {
                     slice.visible = true
                 }
-                
+
             }
         })
     }

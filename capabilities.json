@@ -35,6 +35,11 @@
                 "categories": {
                     "for": {
                         "in": "category"
+                    },
+                    "dataReductionAlgorithm": {
+                        "window": {
+                            "count": 30000
+                        }
                     }
                 },
                 "values": {
@@ -46,7 +51,12 @@
                                     "to": "measure"
                                 }
                             }
-                        ]
+                        ],
+                        "dataReductionAlgorithm": {
+                            "top": {
+                                "count": 30000
+                            }
+                        }
                     }
                 }
             }
@@ -116,6 +126,15 @@
                     }
                 },
                 "bool": {
+                    "type": {
+                        "bool": true
+                    }
+                }
+            }
+        },
+        "fetchMoreData": {
+            "properties": {
+                "do": {
                     "type": {
                         "bool": true
                     }

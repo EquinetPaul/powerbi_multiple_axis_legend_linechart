@@ -99,9 +99,8 @@ export class Visual implements IVisual {
         this.selectionManager = this.host.createSelectionManager();
         this.svg = d3.select(options.element)
             .append('svg')
-            .classed('line-chart', true);
-
-        this.svg.attr('width', this.width + this.margin.left + this.margin.right)
+            .classed('line-chart', true)
+            .attr('width', this.width + this.margin.left + this.margin.right)
             .attr('height', this.height + this.margin.top + this.margin.bottom);
 
         this.svg.append('g')
@@ -109,12 +108,19 @@ export class Visual implements IVisual {
     }
 
     private checkDataValidity(options) {
-        
+
     }
 
     public update(options: VisualUpdateOptions) {
         // Get formating settings
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(VisualFormattingSettingsModel, options.dataViews?.[0]);
+
+        // Fetch More Data
+        if(this.formattingSettings.fetchMoreData.do.value) {
+            if (options.dataViews[0].metadata.segment) {
+                this.host.fetchMoreData();
+            }
+        }
 
         // Generate data for series
         const dataSeries: dataSerie[] = this.getSeriesData(options)
