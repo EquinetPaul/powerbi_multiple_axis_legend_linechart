@@ -108,10 +108,41 @@ export class Visual implements IVisual {
     }
 
     private checkDataValidity(options) {
+        const categoryType = options.dataViews[0].categorical.categories[0].source.type.dateTime
 
+        let valuesTypes = []
+        options.dataViews[0].categorical.values.forEach(element => {
+            valuesTypes.push(element.source.type.numeric)
+        });
+
+        const isValuesOK = !valuesTypes.some(element => element === false);
+        console.log(isValuesOK)
+        
+        return valuesTypes && isValuesOK
+    }
+
+    private displayDataValidityMessage() {
+        const gd = document.querySelector('div');
+        if (gd) {
+            // Clear existing content
+            while (gd.firstChild) {
+                gd.removeChild(gd.firstChild);
+            }
+            
+            // Create paragraph elements
+            const p1 = document.createElement('p');
+            p1.textContent = 'Invalid data.';
+            const p2 = document.createElement('p');
+            p2.textContent = 'Check that X Axis id DateTime, Y Axis numerical and Legend textual or numerical.';
+            
+            // Append paragraph elements to the div
+            gd.appendChild(p1);
+            gd.appendChild(p2);
+        }
     }
 
     public update(options: VisualUpdateOptions) {
+
         // Get formating settings
         this.formattingSettings = this.formattingSettingsService.populateFormattingSettingsModel(VisualFormattingSettingsModel, options.dataViews?.[0]);
 
