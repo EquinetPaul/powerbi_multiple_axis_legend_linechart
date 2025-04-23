@@ -24,7 +24,7 @@ setting up environment instruction.
 Once you have cloned this repository, run these commands to install dependencies and to connect the visual into powerbi.
 
 ```
-npm install # This command will install all necessary modules
+npm install
 ```
 
 ### Start dev app
